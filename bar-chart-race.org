@@ -1,0 +1,352 @@
+#+title: Bar Chart Race
+
+
+* Initial imports
+:PROPERTIES:
+:header-args: :session barChart :results output :exports both
+:END:
+#+BEGIN_SRC python
+import numpy as np
+print("imported!")
+#+END_SRC
+
+#+RESULTS:
+: imported!
+
+* Loading the Dataset
+:PROPERTIES:
+:header-args: :session barChart :results output
+:END:
+#+BEGIN_SRC python
+from pathlib import Path
+file_name = Path('Sweeteners-Consumption.csv')
+root_folder = Path('data')
+file_path = root_folder / file_name
+print(file_path)
+#+END_SRC
+
+#+RESULTS:
+: data/Sweeteners-Consumption.csv
+
+
+
+#+BEGIN_SRC python
+import pandas as pd
+dataFrame = pd.read_csv(file_path, header=0, index_col="Calendar Year")
+# dataFrame = dataFrame.set_index('Calendar Year')
+dataFrame = dataFrame.drop('Total Sweeteners' ,axis=1)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :results output table
+print(dataFrame.head(10))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+               Raw Sugar  Refined Sugar  High-corn  ...  Total  Honey  Other Syrups
+Calendar Year                                       ...
+1966               10235           9565          0  ...   1367     98            69
+1967               10474           9789          3  ...   1415     89            50
+1968               10656           9959         15  ...   1489     90            70
+1969               10950          10234         33  ...   1553    101            61
+1970               11163          10433         56  ...   1629    103            51
+1971               11345          10603         86  ...   1731     93            52
+1972               11487          10736        121  ...   1863    105            52
+1973               11429          10681        218  ...   2092     95            53
+1974               10945          10229        295  ...   2262     75            43
+1975               10302           9628        527  ...   2515    108            43
+
+[10 rows x 8 columns]
+#+end_example
+
+* Barchart animation
+:PROPERTIES:
+:header-args: :session barChart :results output
+:END:
+
+#+BEGIN_SRC python
+print(dataFrame.iloc[0].to_list())
+#+END_SRC
+
+#+RESULTS:
+: [10235, 9565, 0, 952, 415, 1367, 98, 69]
+
+#+BEGIN_SRC python :results none
+from manim import *
+class AnimatedBarChart(Scene):
+    def construct(self):
+        bar_names = [
+            'Raw Sugar','Refined Sugar','High-corn','Glucose','Dextrose','Total Corn','Honey','Other',
+        ]
+
+        self.camera.background_color = WHITE
+
+        config.renderer='cairo'
+        config.quality='low_quality'
+        chart = BarChart(
+            values = dataFrame.iloc[0].to_list(),
+            bar_names=bar_names,
+            y_range=[0,13000, 1000],
+            y_length=7.0,
+            x_length=10,
+            x_axis_config={
+                "font_size":20,
+                'label_direction':DOWN,
+                # 'stroke_color' : RED,
+                # 'font_color' : BLACK,
+                # 'color':BLACK
+            },
+            y_axis_config={
+                "font_size":25,
+            },
+            axis_config = {
+                'color':BLACK,
+                # 'label_color':RED,
+                'tip_shape': StealthTip,
+            }
+        )
+
+        #==================================
+        # this section is to set the axis tick color. The best solution I found was the following for loops
+        # from this reddit post:
+        # https://www.reddit.com/r/manim/comments/x7iqzp/colors_of_axis_text_for_barchart/
+
+        for tick in chart.get_x_axis():
+            tick.set_color(BLACK)
+
+        for tick in chart.get_y_axis():
+            tick.set_color(BLACK)
+
+        #==================================
+
+        current_year =dataFrame.index[0]
+        date_text = Integer(
+            number=current_year,
+            group_with_commas=False,
+
+        ).set_color(BLACK).scale(2.5)
+        date_text.move_to(UP*3)
+        date_text.add_updater(lambda d: d.set_value(current_year))
+
+        self.add(chart, date_text)
+
+        for i, row in enumerate(dataFrame.itertuples()):
+            weights = list(row[1:])  #first item is the date
+            current_year = row[0]
+            if i == 0:
+                continue
+            # elif i > 5:  #comment out to render the full animation
+            #     break
+            self.play(chart.animate.change_bar_values(weights),
+                      # date_text.animate.become(new_date, match_center=True, match_height=True),
+                      rate_func=linear,
+                      run_time=0.7)
+
+scene = AnimatedBarChart()
+scene.render()
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Animation 0: Create(Tex('1966')):   0% 0/60 [00:00<?, ?it/s]Animation 0: Create(Tex('1966')):  12% 7/60 [00:00<00:00, 60.84it/s]Animation 0: Create(Tex('1966')):  27% 16/60 [00:00<00:00, 75.21it/s]Animation 0: Create(Tex('1966')):  43% 26/60 [00:00<00:00, 82.63it/s]Animation 0: Create(Tex('1966')):  58% 35/60 [00:00<00:00, 82.93it/s]Animation 0: Create(Tex('1966')):  73% 44/60 [00:00<00:00, 78.72it/s]Animation 0: Create(Tex('1966')):  87% 52/60 [00:00<00:00, 56.87it/s]Animation 0: Create(Tex('1966')): 100% 60/60 [00:00<00:00, 62.10it/s]                                                                     [12/12/23 00:58:18] INFO     Animation 0 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/2621265332_
+                             1392792357_2153479704.mp4'
+Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 21.05it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:01, 21.11it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 21.12it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 21.08it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 21.03it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 21.02it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:00<00:01, 21.07it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 21.00it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 21.00it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.96it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.78it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.68it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.57it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.48it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.42it/s]Animation 1: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.42it/s]                                                                                                   [12/12/23 00:58:22] INFO     Animation 1 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             266712404_928210545.mp4'
+Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 21.06it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:01, 21.09it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 21.07it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.91it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.90it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.90it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.90it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.94it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.90it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.85it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.63it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.52it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.42it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.35it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.35it/s]Animation 2: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.33it/s]                                                                                                   [12/12/23 00:58:26] INFO     Animation 2 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             206340557_928210545.mp4'
+Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 21.05it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.95it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.94it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.89it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.91it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.84it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.85it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.87it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.88it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.71it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.54it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.45it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.36it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.31it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.24it/s]Animation 3: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.22it/s]                                                                                                   [12/12/23 00:58:30] INFO     Animation 3 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             4101352158_928210545.mp4'
+Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.95it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:01, 21.02it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 21.02it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.98it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.96it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.93it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.95it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 21.00it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 21.00it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.76it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.61it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.51it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.41it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.36it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.31it/s]Animation 4: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.26it/s]                                                                                                   [12/12/23 00:58:34] INFO     Animation 4 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             3354045674_928210545.mp4'
+Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 21.13it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:01, 21.07it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 21.03it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 21.00it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.95it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.94it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.90it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.88it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.88it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.66it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.51it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.43it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.37it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.35it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.26it/s]Animation 5: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.13it/s]                                                                                                   [12/12/23 00:58:38] INFO     Animation 5 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             401898931_928210545.mp4'
+Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.78it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.94it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.96it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.99it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 21.00it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 21.00it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.97it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.94it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.96it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.81it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.65it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.56it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.46it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.42it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.36it/s]Animation 6: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.34it/s]                                                                                                   [12/12/23 00:58:42] INFO     Animation 6 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             621825198_928210545.mp4'
+Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.82it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.94it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.93it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.91it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.89it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.83it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.84it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.86it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.87it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.69it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.52it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.42it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.36it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.35it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.31it/s]Animation 7: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.28it/s]                                                                                                   [12/12/23 00:58:46] INFO     Animation 7 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             1632555210_928210545.mp4'
+Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.89it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.80it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.79it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.79it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.82it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.82it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.83it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.83it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.84it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.63it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.57it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.46it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.39it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.42it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.37it/s]Animation 8: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.37it/s]                                                                                                   [12/12/23 00:58:50] INFO     Animation 8 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             573462009_928210545.mp4'
+Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.95it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.95it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.79it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.85it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.90it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.94it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.94it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.92it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.94it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.74it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.62it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.54it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.46it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.39it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.30it/s]Animation 9: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.21it/s]                                                                                                   [12/12/23 00:58:54] INFO     Animation 9 : Partial      scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             2752785196_928210545.mp4'
+Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 21.01it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.97it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.98it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.98it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.94it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.89it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.86it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.89it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.77it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.65it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.45it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.36it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.31it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.28it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.23it/s]Animation 10: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.21it/s]                                                                                                    [12/12/23 00:58:58] INFO     Animation 10 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             2443670748_928210545.mp4'
+Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.96it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.97it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.97it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.92it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.88it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.87it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.87it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.86it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.85it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.69it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.62it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.46it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.39it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.37it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.24it/s]Animation 11: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.21it/s]                                                                                                    [12/12/23 00:59:02] INFO     Animation 11 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             383266115_928210545.mp4'
+Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.81it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.84it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.81it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.82it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.81it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.75it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.64it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.55it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.52it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.34it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.28it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.20it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.15it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.24it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 19.77it/s]Animation 12: _MethodAnimation(BarChart of 3 submobjects), etc.:  98% 47/48 [00:02<00:00, 19.70it/s]                                                                                                    [12/12/23 00:59:06] INFO     Animation 12 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             525015878_928210545.mp4'
+Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.88it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.83it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.80it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.78it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.80it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.58it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.55it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.64it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.60it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.37it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.20it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.34it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.25it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.21it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 19.81it/s]Animation 13: _MethodAnimation(BarChart of 3 submobjects), etc.:  98% 47/48 [00:02<00:00, 19.81it/s]                                                                                                    [12/12/23 00:59:10] INFO     Animation 13 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             1300073967_928210545.mp4'
+Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.63it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.70it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.73it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.67it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.70it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.80it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.83it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.78it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.65it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.65it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.57it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.54it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.42it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.34it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.25it/s]Animation 14: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.26it/s]                                                                                                    [12/12/23 00:59:14] INFO     Animation 14 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             574895545_928210545.mp4'
+Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.66it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.85it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.82it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.81it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.78it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.78it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.75it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.79it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.82it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.69it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.50it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.35it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.32it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.26it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.19it/s]Animation 15: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.04it/s]                                                                                                    [12/12/23 00:59:18] INFO     Animation 15 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             3638716964_928210545.mp4'
+Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.19it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.58it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.69it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.79it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.79it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.85it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.85it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.87it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.73it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.64it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.49it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.38it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.32it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.30it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.27it/s]Animation 16: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.25it/s]                                                                                                    [12/12/23 00:59:22] INFO     Animation 16 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             2017987969_928210545.mp4'
+Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.87it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.81it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.78it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.79it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.79it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.81it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.80it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.79it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.78it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.80it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.65it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.52it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.38it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.35it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.04it/s]Animation 17: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.16it/s]                                                                                                    [12/12/23 00:59:26] INFO     Animation 17 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             1384292811_928210545.mp4'
+Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.21it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.34it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.44it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.52it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.55it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.60it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.56it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.60it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.65it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.62it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.45it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.37it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.28it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.21it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.16it/s]Animation 18: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.11it/s]                                                                                                    [12/12/23 00:59:31] INFO     Animation 18 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             387760668_928210545.mp4'
+Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.55it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.54it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.53it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.40it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.32it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.31it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.35it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.44it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.46it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.38it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.18it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.17it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.09it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.15it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 19.84it/s]Animation 19: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 19.90it/s]                                                                                                    [12/12/23 00:59:35] INFO     Animation 19 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             2707121321_928210545.mp4'
+Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.33it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.32it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.43it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 19.71it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.07it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.24it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.38it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.28it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.31it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.31it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.32it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.30it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.27it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.15it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.29it/s]Animation 20: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.29it/s]                                                                                                    [12/12/23 00:59:39] INFO     Animation 20 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             1567046471_928210545.mp4'
+Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:04, 10.63it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 14.90it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:02, 17.06it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 18.24it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 19.02it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:01<00:01, 19.49it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 19.81it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.03it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 19.69it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 19.88it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 19.99it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 19.96it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:02<00:00, 19.93it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  85% 41/48 [00:02<00:00, 19.82it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  90% 43/48 [00:02<00:00, 19.80it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 19.78it/s]Animation 21: _MethodAnimation(BarChart of 3 submobjects), etc.:  98% 47/48 [00:02<00:00, 19.78it/s]                                                                                                    [12/12/23 00:59:43] INFO     Animation 21 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             1163189029_928210545.mp4'
+Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.70it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.65it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.70it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.65it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.64it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.61it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.63it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.66it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.68it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.62it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.43it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.34it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.21it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.11it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 19.88it/s]Animation 22: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.10it/s]                                                                                                    [12/12/23 00:59:47] INFO     Animation 22 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             601209784_928210545.mp4'
+Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:   4% 2/48 [00:00<00:02, 19.86it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  10% 5/48 [00:00<00:02, 20.06it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  17% 8/48 [00:00<00:01, 20.13it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  23% 11/48 [00:00<00:01, 20.17it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  29% 14/48 [00:00<00:01, 20.28it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  35% 17/48 [00:00<00:01, 20.25it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  42% 20/48 [00:00<00:01, 20.08it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  48% 23/48 [00:01<00:01, 20.08it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  54% 26/48 [00:01<00:01, 20.12it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  60% 29/48 [00:01<00:00, 20.19it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  67% 32/48 [00:01<00:00, 20.12it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  73% 35/48 [00:01<00:00, 20.11it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  79% 38/48 [00:01<00:00, 20.02it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  85% 41/48 [00:02<00:00, 20.02it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  92% 44/48 [00:02<00:00, 20.03it/s]Animation 23: _MethodAnimation(BarChart of 3 submobjects), etc.:  98% 47/48 [00:02<00:00, 20.00it/s]                                                                                                    [12/12/23 00:59:51] INFO     Animation 23 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             2303814180_928210545.mp4'
+Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.74it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.73it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.68it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.36it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.40it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.60it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.69it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.70it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.70it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.66it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.51it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.37it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.24it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.19it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 20.14it/s]Animation 24: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 20.07it/s]                                                                                                    [12/12/23 00:59:56] INFO     Animation 24 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             888423961_928210545.mp4'
+Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:   0% 0/48 [00:00<?, ?it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:   6% 3/48 [00:00<00:02, 20.45it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  12% 6/48 [00:00<00:02, 20.39it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  19% 9/48 [00:00<00:01, 20.50it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  25% 12/48 [00:00<00:01, 20.41it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  31% 15/48 [00:00<00:01, 20.39it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  38% 18/48 [00:00<00:01, 20.45it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  44% 21/48 [00:01<00:01, 20.42it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  50% 24/48 [00:01<00:01, 20.51it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  56% 27/48 [00:01<00:01, 20.45it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  62% 30/48 [00:01<00:00, 20.44it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  69% 33/48 [00:01<00:00, 20.30it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  75% 36/48 [00:01<00:00, 20.28it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  81% 39/48 [00:01<00:00, 20.36it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  88% 42/48 [00:02<00:00, 20.24it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.:  94% 45/48 [00:02<00:00, 18.53it/s]Animation 25: _MethodAnimation(BarChart of 3 submobjects), etc.: 100% 48/48 [00:02<00:00, 18.92it/s]                                                                                                    [12/12/23 01:00:00] INFO     Animation 25 : Partial     scene_file_writer.py:527
+                             movie file written in
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/partial_movie_files/An
+                             imatedBarChart/4272032393_
+                             3124273526_928210545.mp4'
+                    INFO     Combining to Movie file.   scene_file_writer.py:617
+                    INFO                                scene_file_writer.py:735
+                             File ready at
+                             '/home/linly/Code/Diabetus
+                             -History/media/videos/1080
+                             p60/AnimatedBarChart.mp4'
+
+                    INFO     The partial movie          scene_file_writer.py:707
+                             directory is full (> 100
+                             files). Therefore, manim
+                             has removed the 14 oldest
+                             file(s). You can change
+                             this behaviour by changing
+                             max_files_cached in
+                             config.
+                    INFO     Rendered AnimatedBarChart              scene.py:241
+                             Played 26 animations
+#+end_example
